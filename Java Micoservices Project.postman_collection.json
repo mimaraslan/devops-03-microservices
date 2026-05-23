@@ -1,0 +1,917 @@
+{
+  "info": {
+    "_postman_id": "074cebf6-e359-4f8c-bfcc-7b7f372c2eb0",
+    "name": "Java Micoservices Project",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "77926"
+  },
+  "item": [
+    {
+      "name": "AccountService",
+      "item": [
+        {
+          "name": "Register 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"keisoiwafewei-8345@yopmail.com\",\n  \"password\": \"111\",\n  \"username\": \"user1\",\n  \"firstName\": \"Mimar\",\n  \"lastName\": \"Aslan\",\n  \"phoneNumber\": \"111-11-11\",\n  \"address\": \"Ankara\"\n}\n\n"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/account/register",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "account",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"keisoiwafewei-8345@yopmail.com\",\n  \"password\": \"111\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/account/login",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "account",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Keycloak Token (Password Grant) 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "grant_type",
+                  "value": "password",
+                  "type": "text"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{clientId}}",
+                  "type": "text"
+                },
+                {
+                  "key": "client_secret",
+                  "value": "{{clientSecret}}",
+                  "type": "text"
+                },
+                {
+                  "key": "username",
+                  "value": "keisoiwafewei-8345@yopmail.com",
+                  "type": "text"
+                },
+                {
+                  "key": "password",
+                  "value": "111",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{keycloakUrl}}/realms/{{keycloakRealm}}/protocol/openid-connect/token",
+              "host": [
+                "{{keycloakUrl}}"
+              ],
+              "path": [
+                "realms",
+                "{{keycloakRealm}}",
+                "protocol",
+                "openid-connect",
+                "token"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register 2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"222@gmail.com\",\n  \"password\": \"222\",\n  \"username\": \"user2\",\n  \"firstName\": \"Teoman\",\n  \"lastName\": \"Kurt\",\n  \"phoneNumber\": \"222-22-22\",\n  \"address\": \"Antalya\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/account/register",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "account",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login 2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"222@gmail.com\",\n  \"password\": \"222\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/account/login",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "account",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register 3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"333@gmail.com\",\n  \"password\": \"333\",\n  \"username\": \"user3\",\n  \"firstName\": \"Mimar\",\n  \"lastName\": \"Aslan\",\n  \"phoneNumber\": \"333-33-33\",\n  \"address\": \"Ankara\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/account/register",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "account",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login 3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"3334@gmail.com\",\n  \"password\": \"3334\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/account/login",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "account",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Accounts",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token1}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/account",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "account"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Account By Id 1",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token1}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/account/1",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "account",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Account By Id 2",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token1}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/account/2",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "account",
+                "2"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Account By Id 3",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/account/3",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "account",
+                "3"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Account 1",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token1}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"keisoiwafewei-8345@yopmail.com\",\n  \"password\": \"111\",\n  \"username\": \"user_1\",\n  \"firstName\": \"Berkay\",\n  \"lastName\": \"Serdar\",\n  \"phoneNumber\": \"1111111\",\n  \"address\": \"Mersin\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/account/1",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "account",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"keisoiwafewei-8345@yopmail.com\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/account/logout",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "account",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"keisoiwafewei-8345@yopmail.com\",\n  \"password\": \"111\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/account/login",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "account",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Account 2",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"baziterukeu-8185@yopmail.com\",\n  \"password\": \"222\",\n  \"username\": \"user_2\",\n  \"firstName\": \"Cem\",\n  \"lastName\": \"Ali\",\n  \"phoneNumber\": \"2222222\",\n  \"address\": \"Bolu\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/account/2",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "account",
+                "2"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout 2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"baziterukeu-8185@yopmail.com\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/account/logout",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "account",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login 2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"baziterukeu-8185@yopmail.com\",\n  \"password\": \"222\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/account/login",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "account",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Account 3",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"3333@gmail.com\",\n  \"password\": \"3333\",\n  \"username\": \"user_3\",\n  \"firstName\": \"Okan\",\n  \"lastName\": \"Tolga\",\n  \"phoneNumber\": \"333333\",\n  \"address\": \"Anadolu\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/account/3",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "account",
+                "3"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"1111@gmail.com\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/account/logout",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "account",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "LedgerService",
+      "item": [
+        {
+          "name": "Create Ledger 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token1}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": 1,\n  \"ledgerIbanNumber\": 1001,\n  \"balance\": 10000.00,\n  \"currency\": \"USD\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/ledger",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "ledger"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Ledger 2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token2}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": 2,\n  \"ledgerIbanNumber\": 2002,\n  \"balance\": 20000.00,\n  \"currency\": \"USD\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/ledger",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "ledger"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Ledger 3",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token2}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": 3,\n  \"ledgerIbanNumber\": 3003,\n  \"balance\": 30000.00,\n  \"currency\": \"USD\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/ledger",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "ledger"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login 1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"keisoiwafewei-8345@yopmail.com\",\n  \"password\": \"111\"\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/account/login",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "account",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Transfer Money 1 to 2 - Token 1",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token1}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccount\": 1001,\n  \"toAccount\": 2002,\n  \"amount\": 15.00\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/ledger/transfer",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "ledger",
+                "transfer"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Transfer Money 2 to 1 - Token 1",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token1}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccount\": 2002,\n  \"toAccount\": 1001,\n  \"amount\": 120.00\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/ledger/transfer",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "ledger",
+                "transfer"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Transfer Money 2 to 1 - Token 2",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token2}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccount\": 2002,\n  \"toAccount\": 1001,\n  \"amount\": 250.00\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/ledger/transfer",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "ledger",
+                "transfer"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Transfer Money 1 to 2 - Token 2",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token2}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromAccount\": 1001,\n  \"toAccount\": 2002,\n  \"amount\": 140.00\n}"
+            },
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/ledger/transfer",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "ledger",
+                "transfer"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Ledgers By Account (via Gateway)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/ledger/account/{{accountId}}",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "ledger",
+                "account",
+                "{{accountId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Ledgers By Account  (paged, via Gateway)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{gatewayBaseUrl}}/ledger/account?page={{page}}&size={{size}}",
+              "host": [
+                "{{gatewayBaseUrl}}"
+              ],
+              "path": [
+                "ledger",
+                "account"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "{{page}}"
+                },
+                {
+                  "key": "size",
+                  "value": "{{size}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "gatewayBaseUrl",
+      "value": ""
+    },
+    {
+      "key": "accountId",
+      "value": ""
+    }
+  ]
+}

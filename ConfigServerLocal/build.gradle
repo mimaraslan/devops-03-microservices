@@ -1,0 +1,23 @@
+/**
+ * =============================================================================
+ * ConfigServerLocal — modül bağımlılıkları
+ * =============================================================================
+ *
+ * Bölüm 5 dışında — yapılandırma sunucusu; Config Client kendine gerekmez.
+ *
+ * Burada: Config Server, Web (8888), Eureka kaydı, Zipkin, Log4j
+ * Bilerek yok: JPA, Kafka, Redis, Swagger, Validation (iş servisi değil)
+ * =============================================================================
+ */
+dependencies {
+    implementation libs.springCloudConfigServer
+    implementation libs.springBootWeb
+    implementation libs.springBootActuator
+    implementation libs.springCloudEurekaClient
+    implementation libs.bridgeBrave
+    implementation libs.reporterBrave
+    implementation libs.log4jApi
+    implementation libs.log4jCore
+    implementation libs.log4jSlf4jImpl
+    implementation libs.nettyResolverDnsNativeMacos
+}

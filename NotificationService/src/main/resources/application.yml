@@ -1,0 +1,20 @@
+# Kafka/Eureka/Zipkin: Config Server. Mail: kok .env MAIL_* -> MailEnvProperties
+spring:
+  cloud:
+    config:
+      uri: http://localhost:8888
+  config:
+    import: "optional:configserver:,optional:file:.env,optional:file:../.env"
+  application:
+    name: notification-service-application
+
+management:
+  health:
+    mail:
+      enabled: false
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_BASE_URL:http://127.0.0.1:9411}/api/v2/spans
+  tracing:
+    sampling:
+      probability: 1

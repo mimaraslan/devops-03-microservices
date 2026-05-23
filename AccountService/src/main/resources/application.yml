@@ -1,0 +1,17 @@
+# IDE: proje kokundeki .env + Config Server (8888). Docker: compose ortam degiskenleri.
+spring:
+  cloud:
+    config:
+      uri: http://${CONFIG_SERVER_HOST:127.0.0.1}:8888
+  config:
+    import: "optional:file:.env,optional:file:../.env,optional:configserver:"
+  application:
+    name: account-service-application
+
+management:
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_BASE_URL:http://127.0.0.1:9411}/api/v2/spans
+  tracing:
+    sampling:
+      probability: 1

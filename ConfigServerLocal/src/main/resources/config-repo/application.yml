@@ -1,0 +1,31 @@
+# Tum *-service-application servisleri icin ortak (Config Server native)
+# Sifre/kullanici yalnizca burada; servis dosyalarinda tekrarlanmaz.
+# Degerler: .env (IDE) veya docker-compose ortam degiskenleri.
+
+spring:
+  datasource:
+    username: ${POSTGRES_USER:postgres}
+    password: ${POSTGRES_PASSWORD:123456789}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+  cloud:
+    client:
+      hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+      ip-address: ${SPRING_CLOUD_CLIENT_IP_ADDRESS:127.0.0.1}
+    inetutils:
+      default-hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+      default-ip-address: 127.0.0.1
+
+eureka:
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    instance-id: ${EUREKA_INSTANCE_INSTANCE_ID:${EUREKA_INSTANCE_HOSTNAME:localhost}:${spring.application.name}:${server.port}}
+    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:false}

@@ -1,0 +1,53 @@
+server:
+  port: 9593
+
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:127.0.0.1:9092}
+    listener:
+      observation-enabled: true
+    template:
+      observation-enabled: true
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: fraud-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://localhost:8761/eureka/}
+  instance:
+    # IDE/host: 'localhost' kayit. Windows Hyper-V/mshome.net FQDN'sini Netty DNS resolver cozemiyor.
+    # Docker konteyner: EUREKA_INSTANCE_HOSTNAME=fraud-service (compose service adi)
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:false}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      fraudService:
+        register-health-indicator: true
+        sliding-window-size: 10
+        permitted-number-of-calls-in-half-open-state: 3
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 5s
+
+management:
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_BASE_URL:http://127.0.0.1:9411}/api/v2/spans
+  tracing:
+    propagation:
+      type: b3
+    sampling:
+      probability: 1.0

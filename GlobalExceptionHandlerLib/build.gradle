@@ -1,0 +1,15 @@
+/**
+ * GlobalExceptionHandlerLib — paylasilan kutuphane (Boot JAR yok)
+ * spring-kafka compileOnly: Kafka kullanmayan host'lara (Account) transitif gitmez.
+ */
+dependencies {
+    implementation platform("org.springframework.boot:spring-boot-dependencies:${rootProject.ext.versions.springBoot}")
+
+    implementation 'org.springframework.boot:spring-boot-autoconfigure'
+    implementation 'org.springframework:spring-web'
+
+    compileOnly 'org.slf4j:slf4j-api'
+    compileOnly 'org.springframework.kafka:spring-kafka'
+
+    implementation 'io.micrometer:micrometer-observation'
+}

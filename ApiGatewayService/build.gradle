@@ -1,0 +1,42 @@
+/**
+ * =============================================================================
+ * ApiGatewayService — modül bağımlılıkları
+ * =============================================================================
+ *
+ * Bölüm 5 (iş mikroservisleri) listesinde DEĞİL — tüm JAR'lar burada tanımlı.
+ * Servlet Web / MVC Swagger kullanılmaz; WebFlux + reactive stack.
+ *
+ * Kaldırılan fazlalık: springCloudCircuitBreaker (servlet) — route filtreleri
+ *   yalnızca springCloudCircuitBreakerReactor kullanır.
+ * =============================================================================
+ */
+dependencies {
+    // Yönlendirme ve keşif
+    implementation libs.springCloudGateway
+    implementation 'org.springframework.cloud:spring-cloud-starter-loadbalancer'
+    implementation libs.springCloudEurekaClient
+    implementation libs.springCloudConfigClient
+    implementation libs.springCloudStarterConfig
+
+    // Circuit breaker (reactive — Gateway filtreleri)
+    implementation libs.springCloudCircuitBreakerReactor
+
+    // Güvenlik (JWT resource server)
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
+
+    // İzleme, log, sağlık
+    implementation libs.springBootActuator
+    implementation libs.bridgeBrave
+    implementation libs.reporterBrave
+    implementation libs.log4jApi
+    implementation libs.log4jCore
+    implementation libs.log4jSlf4jImpl
+    implementation libs.nettyResolverDnsNativeMacos
+
+    // Redis rate limit + OpenAPI (WebFlux)
+    implementation libs.redis
+    implementation libs.webFlux
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+}

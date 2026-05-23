@@ -1,0 +1,20 @@
+/**
+ * =============================================================================
+ * DashboardEurekaServer — modül bağımlılıkları
+ * =============================================================================
+ *
+ * Bölüm 5 dışında — kayıt defteri sunucusu (Eureka client değil, server).
+ *
+ * Burada: Eureka Server, Spring Boot Admin UI, Web, Actuator, Log4j
+ * Bilerek yok: Zipkin (isteğe bağlı eklenebilir), Config Client, Kafka, JPA
+ * =============================================================================
+ */
+dependencies {
+    implementation libs.springBootWeb
+    implementation libs.springBootActuator
+    implementation libs.springCloudEurekaServer
+    implementation libs.springCloudAdminStarterServer
+    implementation libs.log4jApi
+    implementation libs.log4jCore
+    implementation libs.log4jSlf4jImpl
+}

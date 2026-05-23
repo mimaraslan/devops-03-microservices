@@ -1,0 +1,21 @@
+server:
+  port: 8761
+
+spring:
+  application:
+    name: dashboard-eureka-server
+  boot:
+    admin:
+      context-path: /admin
+
+eureka:
+  client:
+    registryFetchIntervalSeconds: 5
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      # IDE/host: localhost. Docker: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://localhost:8761/eureka/}
+  instance:
+    leaseRenewalIntervalInSeconds: 10
+

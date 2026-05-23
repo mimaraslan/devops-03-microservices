@@ -1,0 +1,42 @@
+server:
+  port: 9591
+
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:127.0.0.1}:${POSTGRES_PORT:9999}/${POSTGRES_DB:Micro_AccountServiceDB}
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://127.0.0.1:8761/eureka/}
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:false}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+keycloak:
+  server-url: ${KEYCLOAK_SERVER_URL:http://${KEYCLOAK_HOST:127.0.0.1}:8180}
+  realm: master
+  # .env / docker-compose KEYCLOAK_* ile ayni (Keycloak Admin Console giris bilgileri)
+  admin-username: ${KEYCLOAK_ADMIN:admin}
+  admin-password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
+  token-url: ${KEYCLOAK_SERVER_URL:http://${KEYCLOAK_HOST:127.0.0.1}:8180}/realms/master/protocol/openid-connect/token
+  client-id: account-service
+  client-secret: ${KEYCLOAK_CLIENT_SECRET:admin}
+
+management:
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_BASE_URL:http://127.0.0.1:9411}/api/v2/spans
+  tracing:
+    propagation:
+      type: b3
+    sampling:
+      probability: 1.0

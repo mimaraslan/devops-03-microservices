@@ -1,0 +1,279 @@
+/**
+ * =============================================================================
+ * build.gradle — Monorepo merkez yapılandırma (tek dosya)
+ * =============================================================================
+ *
+ * Bu dosyada:
+ *   • Surum numaralari (versions) ve Maven koordinatlari (libs) tanimlanir
+ *   • Tum alt modullere ortak Gradle / Java ayarlari uygulanir
+ *   • Account, Ledger, Fraud, Notification icin ortak JAR seti eklenir
+ *
+ * Module ozel JAR'lar ilgili klasorde kalir:
+ *   AccountService/build.gradle, LedgerService/build.gradle, ...
+ *
+ * Hangi modul ne kullanir?
+ *   AccountService      → + JPA, PostgreSQL, Keycloak, Redis cache, ExceptionHandler
+ *   LedgerService       → + JPA, PostgreSQL, Kafka, JWT, Retry, ExceptionHandler
+ *   FraudService        → + Kafka, Resilience4j, ExceptionHandler
+ *   NotificationService → + Kafka, Mail, Thymeleaf, ExceptionHandler
+ *   ApiGatewayService   → + Gateway, WebFlux, Security, OAuth2, Redis (rate limit)
+ *   ConfigServerLocal   → + Config Server, Eureka client
+ *   DashboardEurekaServer → + Eureka Server, Spring Boot Admin
+ *   GlobalExceptionHandlerLib → paylasilan kutuphane (Boot JAR yok)
+ * =============================================================================
+ */
+
+// Gradle kurali: plugins {} blogu ext/allprojects'tan ONCE gelmeli
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.0.13' apply false
+    id 'io.spring.dependency-management' version '1.1.4'
+    id 'java-library'
+}
+
+// =============================================================================
+// 1) SURUM NUMARALARI
+//    Surum degisikligi yalnizca buradan yapilir; libs.* satirlari $versions ile baglanir.
+// =============================================================================
+ext {
+    versions = [
+            // --- Spring platformu ---
+            springBoot                  : '3.0.13',  // Boot cekirdek (web, jpa, actuator...)
+            springCloud                 : '4.0.0',   // Cloud: Eureka, Config, Gateway (2022.0.x)
+
+            // --- Gelistirme araclari ---
+            lombok                      : '1.18.42', // @Slf4j, @Getter, @Builder (derleme zamani)
+
+            // --- API dokumantasyonu ---
+            swaggerApi                  : '2.3.0',   // springdoc — MVC servisler (Swagger UI)
+            webFlux                     : '2.3.0',   // springdoc — Gateway (reactive)
+
+            // --- Veritabani suruculeri ---
+            postgreSql                  : '42.7.7',  // Account, Ledger
+            mySql                       : '8.3.0',   // (yedek; su an kullanilmiyor)
+
+            // --- Loglama ---
+            log4j                       : '2.20.0',  // Log4j2 (varsayilan Logback yerine)
+
+            // --- Kimlik / guvenlik ---
+            jwt                         : '4.4.0',   // Auth0 JWT parse (Ledger transfer dogrulama)
+            keycloakAdminClient         : '23.0.7',  // Keycloak Admin REST (Account Service)
+
+            // --- Dayaniklilik ---
+            springCloudCircuitBreaker   : '3.0.0',   // Spring Cloud + Resilience4j kopru
+            resilience4jCircuitBreaker  : '2.3.0',   // @CircuitBreaker (Fraud Service)
+
+            // --- Ag / platform ---
+            nettyResolverDnsNativeMacos : '4.1.99.Final:osx-aarch_64', // macOS DNS (Eureka/Gateway)
+
+            // --- Dagitik izleme (Zipkin) ---
+            micrometerTracing           : '1.0.4',   // Micrometer → Brave koprusu
+            zipkinReporter              : '2.16.3',  // Zipkin'e span gonderimi
+    ]
+
+    // =========================================================================
+    // 2) BAGIMLILIK KATALOGU (libs)
+    //    Kullanim: implementation libs.springBootWeb
+    // =========================================================================
+    libs = [
+
+            // ----- Spring Boot starter'lari -----
+            // REST API (Tomcat + Spring MVC) — is mikroservisleri, Config Server
+            springBootWeb                 : "org.springframework.boot:spring-boot-starter-web:$versions.springBoot",
+            // JPA + Hibernate — Account, Ledger
+            springBootDataJpa             : "org.springframework.boot:spring-boot-starter-data-jpa:$versions.springBoot",
+            // /actuator/health, metrics — tum calistirilan servisler
+            springBootActuator            : "org.springframework.boot:spring-boot-starter-actuator:$versions.springBoot",
+            // @Valid, Bean Validation — is mikroservisleri
+            springBootValidation          : "org.springframework.boot:spring-boot-starter-validation:$versions.springBoot",
+            // Spring Security cekirdek — ApiGateway
+            springBootSecurity            : "org.springframework.boot:spring-boot-starter-security:$versions.springBoot",
+
+            // ----- Spring Cloud — yapilandirma ve kesif -----
+            // Config Server REST istemcisi (ConfigServerLocal haric tum servisler)
+            springCloudConfigClient       : "org.springframework.cloud:spring-cloud-config-client:$versions.springCloud",
+            // Merkezi config sunucusu — yalnizca ConfigServerLocal
+            springCloudConfigServer       : "org.springframework.cloud:spring-cloud-config-server:$versions.springCloud",
+            // spring.config.import=configserver: — is mikroservisleri + Gateway
+            springCloudStarterConfig      : "org.springframework.cloud:spring-cloud-starter-config:$versions.springCloud",
+            // API Gateway (reactive routing, filtreler) — ApiGatewayService
+            springCloudGateway            : "org.springframework.cloud:spring-cloud-starter-gateway:$versions.springCloud",
+            // Eureka sunucu — DashboardEurekaServer
+            springCloudEurekaServer       : "org.springframework.cloud:spring-cloud-starter-netflix-eureka-server:$versions.springCloud",
+            // Eureka istemci (kayit + lb://) — mikroservisler, Config, Gateway
+            springCloudEurekaClient       : "org.springframework.cloud:spring-cloud-starter-netflix-eureka-client:$versions.springCloud",
+            // Boot Admin UI (Eureka dashboard uzerinde) — DashboardEurekaServer
+            springCloudAdminStarterServer : 'de.codecentric:spring-boot-admin-starter-server:3.2.2',
+
+            // ----- Circuit breaker (kopru + reactive) -----
+            // Gateway servlet tabanli CB — (Gateway reactive CB asagida)
+            springCloudCircuitBreaker       : "org.springframework.cloud:spring-cloud-circuitbreaker-resilience4j:$versions.springCloudCircuitBreaker",
+            // Gateway filtrelerinde CircuitBreaker — ApiGatewayService
+            springCloudCircuitBreakerReactor : "org.springframework.cloud:spring-cloud-starter-circuitbreaker-reactor-resilience4j:$versions.springCloudCircuitBreaker",
+            // FraudService @CircuitBreaker
+            resilience4jCircuitBreaker      : "io.github.resilience4j:resilience4j-spring-boot3:$versions.resilience4jCircuitBreaker",
+
+            // ----- Veritabani -----
+            postgreSql                    : "org.postgresql:postgresql:$versions.postgreSql",
+            mySql                         : "com.mysql:mysql-connector-j:$versions.mySql",
+
+            // ----- Lombok -----
+            lombok                        : "org.projectlombok:lombok:$versions.lombok",
+
+            // ----- OpenAPI / Swagger -----
+            swaggerApi                    : "org.springdoc:springdoc-openapi-starter-webmvc-ui:$versions.swaggerApi",
+            webFlux                       : "org.springdoc:springdoc-openapi-starter-webflux-ui:$versions.webFlux",
+
+            // ----- Log4j2 (api + cekirdek + SLF4J koprusu) -----
+            log4jApi                      : "org.apache.logging.log4j:log4j-api:$versions.log4j",
+            log4jCore                     : "org.apache.logging.log4j:log4j-core:$versions.log4j",
+            log4jSlf4jImpl                : "org.apache.logging.log4j:log4j-slf4j-impl:$versions.log4j",
+
+            // ----- JWT / Keycloak -----
+            jwt                           : "com.auth0:java-jwt:$versions.jwt",
+            keycloakAdminClient           : "org.keycloak:keycloak-admin-client:$versions.keycloakAdminClient",
+
+            // ----- Zipkin / Micrometer izleme -----
+            bridgeBrave                   : "io.micrometer:micrometer-tracing-bridge-brave:$versions.micrometerTracing",
+            reporterBrave                 : "io.zipkin.reporter2:zipkin-reporter-brave:$versions.zipkinReporter",
+            observation                   : 'io.micrometer:micrometer-observation',
+
+            // ----- Redis -----
+            // Reactive Redis — ApiGateway RequestRateLimiter
+            redis                         : 'org.springframework.boot:spring-boot-starter-data-redis-reactive',
+            // Blocking Redis + @Cacheable — AccountService
+            redisCache                    : 'org.springframework.boot:spring-boot-starter-data-redis',
+
+            // ----- Kafka -----
+            // Uretici/tuketici — Ledger, Fraud, Notification + ExceptionHandler
+            kafka                         : 'org.springframework.kafka:spring-kafka',
+
+            // ----- Yardimci -----
+            springRetry                   : 'org.springframework.retry:spring-retry',  // @Retryable — Ledger
+            springAop                     : 'org.springframework:spring-aop',       // Retry/CB proxy — Ledger
+
+            // ----- macOS Netty DNS (gelistirme ortami) -----
+            nettyResolverDnsNativeMacos     : "io.netty:netty-resolver-dns-native-macos:$versions.nettyResolverDnsNativeMacos",
+    ]
+}
+
+// Kok proje calistirilabilir degil; bootJar / run kapali
+afterEvaluate {
+    if (tasks.findByName('bootJar') != null) {
+        tasks.named('bootJar') { enabled = false }
+    }
+    if (tasks.findByName('run') != null) {
+        tasks.named('run') { enabled = false }
+    }
+}
+
+// =============================================================================
+// 3) TUM MODULLER — ortak ayarlar
+// =============================================================================
+allprojects {
+    group = 'com.mimaraslan'
+    version = 'v.1.0.0'
+
+    repositories {
+        mavenCentral()
+    }
+}
+
+// =============================================================================
+// 4) ALT MODULLER — plugin'ler ve derleme
+// =============================================================================
+subprojects {
+    // ExceptionHandler kutuphane; digerleri calistirilabilir uygulama
+    if (project.name != 'GlobalExceptionHandlerLib' && project != rootProject) {
+        apply plugin: 'application'
+    }
+
+    apply plugin: 'java'
+
+    if (project.name != 'GlobalExceptionHandlerLib') {
+        apply plugin: 'org.springframework.boot'
+    }
+
+    apply plugin: 'io.spring.dependency-management'
+    apply plugin: 'java-library'
+
+    // Lombok + JDK 21 (java plugin sonrasi)
+    dependencies {
+        compileOnly libs.lombok
+        annotationProcessor libs.lombok
+    }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(21)
+        }
+    }
+
+    configurations {
+        compileOnly {
+            extendsFrom annotationProcessor
+        }
+    }
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.compilerArgs.addAll(['-parameters', '-Xlint:unchecked'])
+        options.annotationProcessorPath = configurations.annotationProcessor
+    }
+
+    buildscript {
+        repositories { mavenCentral() }
+        dependencies {
+            classpath("org.springframework.boot:spring-boot-gradle-plugin:${versions.springBoot}")
+        }
+    }
+
+    // ExceptionHandler: yalnizca duz jar (bootJar yok)
+    afterEvaluate {
+        if (project.name == 'GlobalExceptionHandlerLib') {
+            if (tasks.findByName('bootJar') != null) {
+                tasks.named('bootJar') { enabled = false }
+            }
+            tasks.named('jar') {
+                enabled = true
+                archiveClassifier = ''
+            }
+        }
+    }
+}
+
+// =============================================================================
+// 5) IS MIKROSERVISLERI — ortak JAR seti
+//    Account, Ledger, Fraud, Notification
+//    (Modul build.gradle dosyasinda ek JAR'lar tanimlanir.)
+// =============================================================================
+def businessMicroservices = ['AccountService', 'LedgerService', 'FraudService', 'NotificationService']
+
+configure(subprojects.findAll { businessMicroservices.contains(it.name) }) {
+    dependencies {
+        // --- Web ve saglik ---
+        implementation libs.springBootWeb          // REST controller'lar
+        implementation libs.springBootActuator     // health, info endpoint'leri
+        implementation libs.springBootValidation   // DTO dogrulama
+
+        // --- Yapilandirma ve servis kesfi ---
+        implementation libs.springCloudConfigClient   // Config Server istemcisi
+        implementation libs.springCloudStarterConfig  // optional:configserver: import
+        implementation libs.springCloudEurekaClient     // Eureka'ya kayit, lb://
+
+        // --- Zipkin dagitik izleme ---
+        implementation libs.bridgeBrave            // HTTP/Kafka span → Brave
+        implementation libs.reporterBrave          // Brave → Zipkin
+
+        // --- API dokumantasyonu ---
+        implementation libs.swaggerApi             // /swagger-ui.html
+
+        // --- Loglama (Log4j2) ---
+        implementation libs.log4jApi
+        implementation libs.log4jCore
+        implementation libs.log4jSlf4jImpl
+
+        // --- macOS gelistirme (DNS; Windows/Linux'ta zararsiz) ---
+        implementation libs.nettyResolverDnsNativeMacos
+    }
+}

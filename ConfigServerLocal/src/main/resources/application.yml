@@ -1,0 +1,66 @@
+server:
+  port: 8888
+
+spring:
+  config:
+    import: optional:file:.env,optional:file:../.env
+  application:
+    name: config-server-application
+  profiles:
+    active: native
+  cloud:
+    # Windows Hyper-V: OS FQDN (mshome.net) yerine .env / localhost kullanilir
+    client:
+      hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+      ip-address: ${SPRING_CLOUD_CLIENT_IP_ADDRESS:127.0.0.1}
+    inetutils:
+      default-hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+      default-ip-address: 127.0.0.1
+      use-only-site-local-interfaces: false
+    config:
+      server:
+        native:
+          search-locations: classpath:/config-repo
+
+#  zipkin:
+#    enabled: true
+#    base-url: http://localhost:9411/
+#    service:
+#      name: config-server-local
+#    sender:
+#      type: web
+
+#  sleuth:
+#    sampler:
+#      probability: 1.0
+
+eureka:
+  client:
+    # Kayit olmazsa heartbeat 404 + JSON parse hatasina duser
+    register-with-eureka: true
+    fetch-registry: true
+    # Eureka'da durum DOWN olunca eviction riskini azaltir (Actuator health gerekir)
+    healthcheck:
+      enabled: true
+    service-url:
+      # IDE: 127.0.0.1 (localhost -> ::1 tutarsizligindan kacin). Docker: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://127.0.0.1:8761/eureka/}
+  instance:
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    # Kalp atisi URL'si ile ilk kayit mutlak ayni olmali; Windows FQDN degismesinde 404 onlenir
+    instance-id: ${EUREKA_INSTANCE_INSTANCE_ID:${EUREKA_INSTANCE_HOSTNAME:localhost}:${spring.application.name}:${server.port}}
+    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:false}
+    non-secure-port: ${server.port}
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 90
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+#management:
+#  tracing:
+#    sampling:
+#      probability: 1.0

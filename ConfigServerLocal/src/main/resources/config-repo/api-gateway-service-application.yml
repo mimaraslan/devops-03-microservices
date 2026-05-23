@@ -1,0 +1,157 @@
+# Docker: SERVER_PORT=80 (compose). IDE Windows: 80 yonetici; gerekirse SERVER_PORT=9080
+server:
+  port: ${SERVER_PORT:80}
+
+spring:
+
+  data:
+    redis:
+      # IDE: 127.0.0.1. Docker konteyner: SPRING_DATA_REDIS_HOST=redis
+      host: ${SPRING_DATA_REDIS_HOST:127.0.0.1}
+      port: 6379
+
+  cloud:
+    # Tüm servislerin kaydolduğu Eureka sunucu adresini belirtir
+    gateway:
+      # Eureka'dan servisleri otomatik olarak bulup yönlendirme yapabilmek için
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+
+      # Tüm rotalara uygulanan hız sınırlama (Redis gerekli; Redis kapalıysa istekler hata verebilir).
+      default-filters:
+        - name: RequestRateLimiter
+          args:
+            key-resolver: '#{@ipAddressResolver}'
+            redis-rate-limiter.replenishRate: 100
+            redis-rate-limiter.burstCapacity: 200
+
+
+      routes:
+        - id: account-service
+#          uri: http://localhost:9591
+          uri: lb://account-service-application
+          predicates:
+            - Path=/account/**
+          filters:
+            # Path'i olduğu gibi bırak, çünkü AccountService /account/** path'ini bekliyor
+            - name: CircuitBreaker
+              args:
+                name: account
+                fallbackUri: forward:/fallback/account
+
+        - id: ledger-service
+          #          uri: http://localhost:9592
+          uri: lb://ledger-service-application
+          predicates:
+            - Path=/ledger/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: ledger
+                fallbackUri: forward:/fallback/ledger
+
+        - id: fraud-service
+#          uri: http://localhost:9593
+          uri: lb://fraud-service-application
+          predicates:
+            - Path=/fraud/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: fraud
+                fallbackUri: forward:/fallback/fraud
+
+
+        - id: notification-service
+          #          uri: http://localhost:9594
+          uri: lb://notification-service-application
+          predicates:
+            - Path=/notification/**
+          filters:
+            - name: CircuitBreaker
+              args:
+                name: notification
+                fallbackUri: forward:/fallback/notification
+
+    loadbalancer:
+      cache:
+        # Servis Gateway'den sonra Eureka'ya yazildiginda bos ornek listesi kisa sure kalsin
+        ttl: 3s
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Sadece jwk-set-uri: konteynerden keycloak:8080 ile anahtar alinir;
+          # issuer-uri kullanilmaz (Postman localhost:8180 token iss ile catismaz).
+          jwk-set-uri: ${KEYCLOAK_JWK_SET_URI:http://127.0.0.1:8180/realms/master/protocol/openid-connect/certs}
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      # IDE: 127.0.0.1. Docker: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://127.0.0.1:8761/eureka/}
+  instance:
+    # IDE/host: 'localhost' kayit. Windows Hyper-V/mshome.net FQDN'sini Netty DNS resolver cozemiyor.
+    # Docker konteyner: EUREKA_INSTANCE_HOSTNAME=api-gateway (compose service adi)
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:false}
+    non-secure-port: ${server.port}
+
+api-gateway-service:
+  secret:
+    key: q8WJt7uQn3j0N4kJb0V1bU4rZk7y9cYp2GfH1YtJmHs=
+  issuer: İstanbul34
+  expire:
+    # 1 saat (ms) — Keycloak master realm: Realm settings > Tokens > Access token lifespan
+    date: 3600000
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    urls:
+      - name: account-service
+        url: /v3/api-docs/account-service
+      - name: ledger-service
+        url: /v3/api-docs/ledger-service
+      - name: fraud-service
+        url: /v3/api-docs/fraud-service
+      - name: notification-service
+        url: /v3/api-docs/notification-service
+
+# CircuitBreaker filtresi varsayilan TimeLimiter 1s; ledger account dogrulamasi + retry daha uzun surer
+resilience4j:
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 15s
+    instances:
+      ledger:
+        baseConfig: default
+      account:
+        baseConfig: default
+      fraud:
+        timeoutDuration: 10s
+      notification:
+        timeoutDuration: 10s
+  circuitbreaker:
+    configs:
+      default:
+        slidingWindowSize: 10
+        waitDurationInOpenState: 30s
+
+management:
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_BASE_URL:http://127.0.0.1:9411}/api/v2/spans
+  tracing:
+    propagation:
+      type: b3
+    sampling:
+      probability: 1.0

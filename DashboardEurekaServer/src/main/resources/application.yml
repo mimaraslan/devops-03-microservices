@@ -1,0 +1,23 @@
+# IDE: Once Eureka (8761), sonra Config Server (8888), sonra mikroservisler.
+# Config Server yokken de ayaga kalkar (optional:configserver).
+spring:
+  cloud:
+    config:
+      uri: http://${CONFIG_SERVER_HOST:127.0.0.1}:8888
+      fail-fast: false
+  config:
+    import: "optional:file:../.env,optional:configserver:"
+  application:
+    name: dashboard-eureka-server
+
+server:
+  port: 8761
+
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://127.0.0.1:8761/eureka/}
+  instance:
+    lease-renewal-interval-in-seconds: 10

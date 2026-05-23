@@ -1,0 +1,45 @@
+server:
+  port: 9594
+
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:127.0.0.1:9092}
+    listener:
+      observation-enabled: true
+    template:
+      observation-enabled: true
+#    producer:
+#      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+#      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: notification-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+  # mail: NotificationService/application.yml + .env (MAIL_*) — Config Server'da tutulmaz
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://localhost:8761/eureka/}
+  instance:
+    # IDE/host: 'localhost' kayit. Windows Hyper-V/mshome.net FQDN'sini Netty DNS resolver cozemiyor.
+    # Docker konteyner: EUREKA_INSTANCE_HOSTNAME=notification-service (compose service adi)
+    hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+    prefer-ip-address: ${EUREKA_INSTANCE_PREFER_IP_ADDRESS:false}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+management:
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_BASE_URL:http://127.0.0.1:9411}/api/v2/spans
+  tracing:
+    propagation:
+      type: b3
+    sampling:
+      probability: 1.0
+

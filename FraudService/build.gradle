@@ -1,0 +1,18 @@
+/**
+ * =============================================================================
+ * FraudService — modül bağımlılıkları
+ * =============================================================================
+ *
+ * Kök build.gradle (bölüm 5) + bu dosya.
+ *
+ * Burada eklenenler:
+ *   Kafka (fraud-check / fraud-result), Resilience4j @CircuitBreaker, ExceptionHandler
+ *
+ * Bilerek yok: PostgreSQL, JPA (kodda @Entity yok; DataSource auto-config kapalı)
+ * =============================================================================
+ */
+dependencies {
+    implementation libs.kafka
+    implementation libs.resilience4jCircuitBreaker
+    implementation project(':GlobalExceptionHandlerLib')
+}

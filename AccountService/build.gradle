@@ -1,0 +1,22 @@
+/**
+ * =============================================================================
+ * AccountService — modül bağımlılıkları
+ * =============================================================================
+ *
+ * Kök build.gradle (bölüm 5 — iş mikroservisleri) otomatik ekler:
+ *   springBootWeb, Actuator, Validation, Config Client/Starter, Eureka Client,
+ *   Zipkin (Brave), Swagger (MVC), Log4j2, macOS Netty DNS
+ *
+ * Bu dosyada TEKRAR YOK — yalnızca Account'a özel JAR'lar:
+ *   PostgreSQL, JPA, Keycloak Admin, Redis önbellek, ExceptionHandler
+ *
+ * Bilerek eklenmeyen: Kafka (üretici/tüketici yok), Feign, Resilience4j
+ * =============================================================================
+ */
+dependencies {
+    implementation libs.postgreSql
+    implementation libs.springBootDataJpa
+    implementation libs.keycloakAdminClient
+    implementation libs.redisCache
+    implementation project(':GlobalExceptionHandlerLib')
+}

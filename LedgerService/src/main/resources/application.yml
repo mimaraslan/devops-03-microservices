@@ -1,0 +1,16 @@
+spring:
+  cloud:
+    config:
+      uri: http://localhost:8888
+  config:
+    import: "optional:file:../.env,optional:configserver:"
+  application:
+    name:  ledger-service-application
+
+management:
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_BASE_URL:http://127.0.0.1:9411}/api/v2/spans
+  tracing:
+    sampling:
+      probability: 1

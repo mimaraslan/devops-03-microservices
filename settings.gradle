@@ -1,0 +1,22 @@
+/**
+ * settings.gradle — Gradle cok modullu proje tanimi
+ *
+ * Bu dosya hangi alt modullerin derlenecegini belirler.
+ * Siralama derleme onceligini etkilemez; yalnizca proje agacini olusturur.
+ * Kok proje adi IntelliJ / Gradle penceresinde gorunen isimdir.
+ */
+rootProject.name = 'devops-03-microservices'
+
+// --- Platform (yapilandirma + servis kesfi) ---
+include 'ConfigServerLocal'       // Merkezi application.yml (port 8888)
+include 'DashboardEurekaServer'   // Netflix Eureka sunucusu (port 8761)
+include 'ApiGatewayService'       // Spring Cloud Gateway — dis API girisi
+
+// --- Ortak kutuphane (calistirilabilir JAR degil) ---
+include 'GlobalExceptionHandlerLib' // Hata yonetimi, Kafka/Zipkin izleme yardimcilari
+
+// --- Is mikroservisleri ---
+include 'AccountService'          // Hesap / kullanici (Keycloak entegrasyonu)
+include 'LedgerService'           // Transfer / Cuzdan 
+include 'FraudService'            // Dolandiricilik kontrolu (Kafka)
+include 'NotificationService'     // Bildirim (Kafka, e-posta)

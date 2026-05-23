@@ -1,0 +1,487 @@
+﻿# =============================================================================
+# DevOps Microservices Stack — Docker Compose
+# Baslatma: cp .env.example .env  (sifreleri duzenleyin)  ->  docker compose up -d
+# Zipkin UI: http://localhost:9411 | Eureka: http://localhost:8761 | Gateway: http://localhost:80
+# Gizli bilgiler .env dosyasindadir. Repoda acik parola tutulmaz.
+#
+# Baslatma sırası (depends_on + healthcheck):
+#   1) postgres, redis, kafka, zipkin (paralel)
+#   2) postgres-init, keycloak | eureka-server (paralel)
+#   3) config-server (eureka healthy sonrasi)
+#   4) mikroservisler (config + eureka healthy; DB/Kafka/Keycloak hazir)
+#   5) api-gateway (tum backend'ler healthy)
+# Detay: README.md — "Docker Compose baslatma sirasi"
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # VERITABANI
+  # PostgreSQL: Keycloak + tum mikroservis DB'leri. Host portu 9999 -> 5432
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:17
+    container_name: my-postgresdb
+    ports:
+      - "9999:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: "keycloak"
+    volumes:
+      - postgres-volume:/var/lib/postgresql/data
+      - ./sql/postgres/init-databases.sql:/docker-entrypoint-initdb.d/01-init-databases.sql
+    networks:
+      - keycloak-net
+      - microservices-net
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Tek seferlik: Microservices veritabanlarini olusturur (sql/postgres/init-databases.sh)
+  # postgres:17 imaji VOLUME /var/lib/postgresql/data icerir; mount yoksa Docker anonim volume acar.
+  # Sunucu calistirmadigimiz icin tmpfs ile o yolu bos tutuyoruz (kalici volume yok).
+  postgres-init:
+    image: postgres:17
+    container_name: my-postgresdb-init
+    entrypoint: ["/bin/bash", "/scripts/init-databases.sh"]
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    tmpfs:
+      - /var/lib/postgresql/data
+    volumes:
+      - ./sql/postgres/init-databases.sh:/scripts/init-databases.sh:ro
+    networks:
+      - keycloak-net
+      - microservices-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # ---------------------------------------------------------------------------
+  # GOZLEMLENEBILIRLIK
+  # Dagitik izleme (trace). Spring servisleri span'leri buraya gonderir.
+  # ---------------------------------------------------------------------------
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: my-zipkin
+    # STORAGE_TYPE=mem: izler bellekte; kalici volume gerekmez
+    environment:
+      - STORAGE_TYPE=mem
+    ports:
+      - 9411:9411
+    networks:
+      - microservices-net
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:9411/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ---------------------------------------------------------------------------
+  # ONBELLEK
+  # Account cache + API Gateway rate limiting icin Redis
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis
+    container_name: my-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-volume:/data
+    networks:
+      - microservices-net
+    restart: always
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # MESAJLASMA (Kafka uyumlu)
+  # Redpanda: fraud-check, fraud-result, notification topic'leri
+  # Host: localhost:9092 | Konteyner icinde: redpanda:9092
+  # ---------------------------------------------------------------------------
+  redpanda:
+    image: redpandadata/redpanda:v25.3.1
+    container_name: my-kafka
+    command: >
+      redpanda start
+        --overprovisioned
+        --smp 1
+        --memory 1G
+        --reserve-memory 0M
+        --node-id 0
+        --check=false
+        --kafka-addr 0.0.0.0:9092
+        --advertise-kafka-addr redpanda:9092
+    ports:
+      - "9092:9092"
+      - "8081:8081"
+    environment:
+      REDPANDA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    volumes:
+      - kafka-volume:/var/lib/redpanda/data
+    networks:
+      - kafka-net
+      - microservices-net
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health 2>&1 | grep -q 'Healthy'"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # KIMLIK DOGRULAMA (OAuth2 / JWT)
+  # Keycloak: kullanici ve token. Dis erisim: http://localhost:8180
+  # ---------------------------------------------------------------------------
+  keycloak:
+    image: quay.io/keycloak/keycloak:23.0.7
+    container_name: my-keycloak
+    command: start-dev --http-port=8080 --hostname-strict=false
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
+    ports:
+      - "8180:8080"
+    volumes:
+      - keycloak-volume:/opt/keycloak/data
+    networks:
+      - keycloak-net
+      - microservices-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080; echo -e 'GET /health/ready HTTP/1.1\\r\\nhost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3; timeout 5 cat <&3 | grep -q '200'"]
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 90s
+
+
+  # ---------------------------------------------------------------------------
+  # PLATFORM — Yapilandirma ve servis kesfi
+  # Config Server: merkezi application.yml | Eureka: lb:// yonlendirme kaydi
+  # ---------------------------------------------------------------------------
+
+  config-server:
+    build:
+      context: .
+      dockerfile: ConfigServerLocal/Dockerfile
+    container_name: config-server
+    ports:
+      - "8888:8888"
+    environment:
+      MANAGEMENT_HEALTH_REDIS_ENABLED: "false"
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: config-server
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+      SPRING_CLOUD_CLIENT_HOSTNAME: config-server
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    networks:
+      - microservices-net
+    restart: always
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  eureka-server:
+    build:
+      context: .
+      dockerfile: DashboardEurekaServer/Dockerfile
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      MANAGEMENT_HEALTH_REDIS_ENABLED: "false"
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
+      EUREKA_CLIENT_FETCH_REGISTRY: "false"
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    networks:
+      - microservices-net
+    # Eureka once kalkar; Config Server Eureka healthy olduktan sonra baslar
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+
+  # ---------------------------------------------------------------------------
+  # MIKROSERVISLER
+  # Is mantigi servisleri. Kafka ile asenkron: Ledger <-> Fraud <-> Notification
+  # ---------------------------------------------------------------------------
+
+  # Hesap, Keycloak entegrasyonu, Redis cache — port 9591
+  account-service:
+    build:
+      context: .
+      dockerfile: AccountService/Dockerfile
+    container_name: account-service
+    ports:
+      - "9591:9591"
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: account-service
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/Micro_AccountServiceDB
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      ZIPKIN_BASE_URL: http://zipkin:9411
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+      KEYCLOAK_SERVER_URL: http://keycloak:8080
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+    networks:
+      - microservices-net
+      - keycloak-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      postgres-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      zipkin:
+        condition: service_started
+      keycloak:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9591/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+    restart: always
+
+
+  # Transfer, bakiye, Kafka uretici/tuketici — port 9592
+  ledger-service:
+    build:
+      context: .
+      dockerfile: LedgerService/Dockerfile
+    container_name: ledger-service
+    ports:
+      - "9592:9592"
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: ledger-service
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/Micro_LedgerServiceDB
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      ZIPKIN_BASE_URL: http://zipkin:9411
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+      ACCOUNT_SERVICE_BASE_URL: http://api-gateway/account/
+    networks:
+      - microservices-net
+      - keycloak-net
+      - kafka-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      postgres-init:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      zipkin:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9592/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+    restart: always
+
+
+  # fraud-check-events tuketir, fraud-result-events uretir — port 9593
+  fraud-service:
+    build:
+      context: .
+      dockerfile: FraudService/Dockerfile
+    container_name: fraud-service
+    ports:
+      - "9593:9593"
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: fraud-service
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      ZIPKIN_BASE_URL: http://zipkin:9411
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+    networks:
+      - microservices-net
+      - kafka-net
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      zipkin:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9593/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+    restart: always
+
+
+  # notification-transfer-events tuketir, e-posta bildirimi — port 9594
+  notification-service:
+    build:
+      context: .
+      dockerfile: NotificationService/Dockerfile
+    container_name: notification-service
+    ports:
+      - "9594:9594"
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: notification-service
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      ZIPKIN_BASE_URL: http://zipkin:9411
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+      MAIL_HOST: ${MAIL_HOST}
+      MAIL_PORT: ${MAIL_PORT}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+    networks:
+      - microservices-net
+      - kafka-net
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      zipkin:
+        condition: service_started
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9594/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+    restart: always
+
+  # ---------------------------------------------------------------------------
+  # API GATEWAY — Tek giris noktasi
+  # JWT dogrulama, Eureka lb:// yonlendirme, circuit breaker — port 80
+  # Ornek: http://localhost/account/... http://localhost/ledger/...
+  # ---------------------------------------------------------------------------
+  api-gateway:
+    build:
+      context: .
+      dockerfile: ApiGatewayService/Dockerfile
+    container_name: api-gateway
+    ports:
+      - "80:80"
+    environment:
+      SPRING_CLOUD_CONFIG_URI: http://config-server:8888
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      EUREKA_INSTANCE_HOSTNAME: api-gateway
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+      SPRING_DATA_REDIS_HOST: redis
+      ZIPKIN_BASE_URL: http://zipkin:9411
+      MANAGEMENT_ZIPKIN_TRACING_ENDPOINT: http://zipkin:9411/api/v2/spans
+      KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/master/protocol/openid-connect/certs
+    networks:
+      - microservices-net
+      - keycloak-net
+    depends_on:
+      redis:
+        condition: service_healthy
+      zipkin:
+        condition: service_started
+      keycloak:
+        condition: service_healthy
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      account-service:
+        condition: service_healthy
+      ledger-service:
+        condition: service_healthy
+      fraud-service:
+        condition: service_healthy
+      notification-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+    restart: always
+
+# =============================================================================
+# AGLAR
+# =============================================================================
+networks:
+  kafka-net:        # Kafka kullanan servisler
+  keycloak-net:     # Keycloak + Account
+  microservices-net: # Genel servis iletisimi
+
+# =============================================================================
+# KALICI DEPOLAMA (volumes)
+# =============================================================================
+volumes:
+  kafka-volume:      # Redpanda topic / segment verisi
+  keycloak-volume:   # Keycloak yerel export / dev verisi (DB postgres'te)
+  postgres-volume:   # PostgreSQL cluster (Keycloak + Micro_* DB'ler)
+  redis-volume:      # Redis persistence (cache, rate limit)

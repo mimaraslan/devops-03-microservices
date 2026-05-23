@@ -1,0 +1,19 @@
+/**
+ * =============================================================================
+ * NotificationService — modül bağımlılıkları
+ * =============================================================================
+ *
+ * Kök build.gradle (bölüm 5) + bu dosya.
+ *
+ * Burada eklenenler:
+ *   Kafka (notification-transfer-events), Thymeleaf şablon, JavaMail, ExceptionHandler
+ *
+ * Bilerek yok: PostgreSQL, JPA (veritabanı kullanılmıyor)
+ * =============================================================================
+ */
+dependencies {
+    implementation libs.kafka
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+    implementation 'org.springframework.boot:spring-boot-starter-mail'
+    implementation project(':GlobalExceptionHandlerLib')
+}

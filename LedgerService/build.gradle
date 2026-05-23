@@ -1,0 +1,23 @@
+/**
+ * =============================================================================
+ * LedgerService — modül bağımlılıkları
+ * =============================================================================
+ *
+ * Kök build.gradle (bölüm 5) + bu dosya.
+ *
+ * Burada eklenenler:
+ *   PostgreSQL, JPA, Kafka, JWT parse, Spring Retry/AOP, context-propagation, ExceptionHandler
+ *
+ * Bilerek yok: Keycloak, Redis cache, Resilience4j (Fraud'ta)
+ * =============================================================================
+ */
+dependencies {
+    implementation libs.postgreSql
+    implementation libs.springBootDataJpa
+    implementation libs.springRetry
+    implementation libs.springAop
+    implementation libs.jwt
+    implementation libs.kafka
+    implementation 'io.micrometer:context-propagation'
+    implementation project(':GlobalExceptionHandlerLib')
+}

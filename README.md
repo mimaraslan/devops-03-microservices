@@ -34,8 +34,10 @@ Yüksek eşzamanlılık ve dağıtık dayanıklılık hedefleriyle tasarlanmış
 | **API Gateway** | Spring Cloud Gateway, Eureka tabanlı `lb://` yönlendirme, circuit breaker fallback’leri, isteğe bağlı Redis rate limit. |
 | **Gözlemlenebilirlik** | Zipkin / Micrometer tracing (yapılandırma servislere göre); Actuator health. |
 | **Merkezi hata modeli** | Paylaşılan exception tipleri ve HTTP eşlemesi (`GlobalExceptionHandlerLib`). |
+| **Case study (EN)** | Orijinal case study dokümanı: [Case Study EN.pdf](<README/Case Study EN.pdf>) |
+| **Case study (TR)** | Türkçe case study dokümanı: [Case Study TR.pdf](<README/Case Study TR.pdf>) |
 
-Case study ve iyileştirme özetleri için bkz. [`README/CASE_STUDY_EVALUATION_UPDATED.md`](README/CASE_STUDY_EVALUATION_UPDATED.md).
+Case study değerlendirme ve iyileştirme özetleri için bkz. [`README/CASE_STUDY_EVALUATION_UPDATED.md`](README/CASE_STUDY_EVALUATION_UPDATED.md).
 
 ---
 
@@ -73,45 +75,27 @@ Modül listesi `settings.gradle` dosyasında tanımlıdır.
 
 ## Mimari genel bakış
 
-```mermaid
-flowchart LR
-  subgraph client[İstemci]
-    C[Web / Postman / Mobil]
-  end
-  subgraph edge[Kenar]
-    GW[API Gateway]
-  end
-  subgraph platform[Platform]
-    EU[Eureka]
-    CF[Config Server]
-  end
-  subgraph domain[Domain servisleri]
-    AC[Account]
-    LG[Ledger]
-    FR[Fraud]
-    NT[Notification]
-  end
-  subgraph data[Veri ve mesajlaşma]
-    PG[(PostgreSQL)]
-    RD[(Redis)]
-    KF[Kafka / Redpanda]
-  end
-  C --> GW
-  GW --> EU
-  AC --> CF
-  LG --> CF
-  FR --> CF
-  NT --> CF
-  GW --> AC
-  GW --> LG
-  GW --> FR
-  GW --> NT
-  AC --> PG
-  AC --> RD
-  LG --> PG
-  LG --> KF
-  FR --> KF
-  NT --> KF
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ İstemci: Web / Postman / Mobil                                   │
+└────────────────────────────┬─────────────────────────────────────┘
+                             │
+                             ▼
+                      ┌──────────────┐
+                      │ API Gateway  │──────► Eureka (lb:// yönlendirme)
+                      └──────┬───────┘
+                             │
+        ┌────────────────────┼────────────────────┐
+        ▼                    ▼                    ▼
+  ┌──────────┐         ┌──────────┐         ┌───────────────┐
+  │ Account  │         │  Ledger  │         │ Fraud / Notif.│
+  └────┬─────┘         └────┬─────┘         └───────┬───────┘
+       │                    │                       │
+       ▼                    ▼                       ▼
+  PostgreSQL           PostgreSQL              Kafka / Redpanda
+  Redis                Kafka / Redpanda
+
+Platform: Config Server ◄── Account, Ledger, Fraud, Notification
 ```
 
 ---
@@ -122,47 +106,34 @@ flowchart LR
 
 ### Dalga diyagramı
 
-```mermaid
-flowchart TB
-  subgraph w1["Dalga 1 — Altyapı (paralel)"]
-    PG[(postgres)]
-    RD[(redis)]
-    RP[redpanda]
-    ZK[zipkin]
-  end
+```
+Dalga 1 — Altyapı (paralel)
+  postgres │ redis │ redpanda │ zipkin
 
-  subgraph w2["Dalga 2"]
-    PG --> PI[postgres-init]
-    PG --> KC[keycloak]
-    EU[eureka-server]
-  end
+Dalga 2
+  postgres (healthy) ──► postgres-init
+  postgres (healthy) ──► keycloak
+  eureka-server          (bağımsız başlar)
 
-  subgraph w3["Dalga 3"]
-    EU --> CF[config-server]
-  end
+Dalga 3
+  eureka-server (healthy) ──► config-server
 
-  subgraph w4["Dalga 4 — Mikroservisler (paralel)"]
-    CF --> AC[account-service]
-    CF --> LG[ledger-service]
-    CF --> FR[fraud-service]
-    CF --> NT[notification-service]
-    PI --> AC
-    PI --> LG
-    RD --> AC
-    RD --> LG
-    KC --> AC
-    RP --> LG
-    RP --> FR
-    RP --> NT
-  end
+Dalga 4 — Mikroservisler (paralel)
+  config-server ──► account-service
+               ├──► ledger-service
+               ├──► fraud-service
+               └──► notification-service
 
-  subgraph w5["Dalga 5"]
-    AC --> GW[api-gateway]
-    LG --> GW
-    FR --> GW
-    NT --> GW
-    KC --> GW
-  end
+  postgres-init ──► account-service, ledger-service
+  redis ─────────► account-service, ledger-service
+  keycloak ──────► account-service
+  redpanda ──────► ledger-service, fraud-service, notification-service
+
+Dalga 5
+  account-service ──┐
+  ledger-service  ──┼──► api-gateway  (+ keycloak, redis healthy)
+  fraud-service   ──┤
+  notification-service ─┘
 ```
 
 ### Servis bağımlılıkları (özet)
@@ -289,7 +260,8 @@ Docker ve host eşlemelerinin tam tablosu için: [`README/DOCKER_DEPLOYMENT_GUID
 | [CASE_STUDY_EVALUATION.md](README/CASE_STUDY_EVALUATION.md) | Case study karşılaştırması (özet + tarihsel iyileştirme notları) |
 | [CASE_STUDY_EVALUATION_UPDATED.md](README/CASE_STUDY_EVALUATION_UPDATED.md) | Güncellenmiş gereksinim matrisi ve kalan işler |
 
-PDF case study metni varsa: `README/Case Study.pdf` (depoda mevcutsa).
+| [Case Study EN.pdf](<README/Case Study EN.pdf>) | Orijinal case study dokümanı (PDF) |
+| [Case Study TR.pdf](<README/Case Study TR.pdf>) | Türkçe case study dokümanı (PDF) |
 
 ---
 
